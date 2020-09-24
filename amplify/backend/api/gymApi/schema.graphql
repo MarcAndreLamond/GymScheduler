@@ -1,0 +1,6 @@
+type schedule @model {
+  id: ID!
+  start:  AWSDateTime!
+  end:  AWSDateTime!
+  title: String!
+}

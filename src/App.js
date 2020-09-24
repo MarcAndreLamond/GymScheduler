@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, momentLocalizer, Views } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
@@ -17,7 +17,10 @@ import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
 import MenuIcon from '@material-ui/icons/Menu';
 import TextField from '@material-ui/core/TextField';
+import { API } from 'aws-amplify';
+import { listSchedules } from './graphql/queries';
 import { withAuthenticator, AmplifySignOut } from '@aws-amplify/ui-react'
+import { createSchedule as createScheduleMutation, deleteSchedule as deleteScheduleMutaion } from './graphql/mutations';
 
 const localizer = momentLocalizer(moment);
 
@@ -71,22 +74,37 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 function App() {
-    const [myEventsList, setEventList] = useState([{
-        start: moment().toDate(),
-        end: moment()
-            .add(1, "hour")
-            .toDate(),
-        title: titleText,
-    }
 
-    ]);
-
+    const [myEventsList, setEventList] = React.useState([]);
     const classes = useStyles();
     const [openModal, setOpenModal] = React.useState(false);
     const [startDate, setStartDate] = React.useState(new Date('2014-08-18T21:11:54'));
     const [endDate, setEndDate] = React.useState(new Date('2014-08-18T21:11:54'));
+    const [titreSchedule, setitreSchedule] = React.useState(null);
     const [modalStyle] = React.useState(getModalStyle);
     const [openModalReservation, setOpenModalReservation] = React.useState(false);
+
+    useEffect(() => {
+        fetchSchedule();
+    }, []);
+
+
+    async function fetchSchedule() {
+        const apiData = await API.graphql({ query: listSchedules });
+        const s = apiData.data.listSchedules.items.map(convertData);
+        setEventList(s);
+    }
+
+    function convertData(item) {
+        const s = moment(item.start).format("YYYY-MM-DDThh:mm:ss");
+        const e = moment(item.end).format("YYYY-MM-DDThh:mm:ss");
+        var data = {
+            start : moment(s).toDate(),
+            end :   moment(e).toDate(),
+            title : item.title,
+        };
+        return data;
+    };
 
     const handleDateStartChange = (date) => {
         setStartDate(date);
@@ -94,6 +112,10 @@ function App() {
 
     const handleEndDateChange = (date) => {
         setEndDate(date);
+    };
+
+    const handleTitreChange = (titre) => {
+        setitreSchedule(titre.target.value);
     };
 
     const handleOpen = ({ start, end }) => {
@@ -121,10 +143,20 @@ function App() {
         setEventList(list);
         handleCloseReservation();
     }
+
     const AddEvent = () => {
         const start = moment(startDate).toDate();
         const end = moment(endDate).toDate();
-        const title = titleText;
+        const title = titreSchedule;
+        API.graphql({
+            query: createScheduleMutation, variables: {
+                input: {
+                    start,
+                    end,
+                    title,
+                }
+            }
+        });
         setEventList([
             ...myEventsList,
             {
@@ -139,9 +171,13 @@ function App() {
 
     const body = (
         <div style={modalStyle} className={classes.paper} >
-            <h2 id="simple-modal-title">Add disponibility </h2>
+            <h2 id="simple-modal-title">Create event </h2>
+           
             <MuiPickersUtilsProvider utils={DateFnsUtils}>
                 <Grid container justify="space-around">
+                <form  Validate autoComplete="off">
+                    <TextField id="titre" label="Titre" onChange={handleTitreChange} required />
+                </form>
                     <KeyboardTimePicker
                         margin="normal"
                         id="time-picker"
@@ -168,7 +204,7 @@ function App() {
 
             <Grid paddingTop={2} container justify="space-around">
                 <Button variant="contained" color="primary" onClick={AddEvent}>
-                    Add disponibility
+                    Add event
             </Button>
             </Grid>
 
@@ -206,9 +242,9 @@ function App() {
                         <Typography variant="h6" className={classesBar.title}>
                             Gym Test
                     </Typography>
-                    <div>
-                        <AmplifySignOut />
-                    </div>
+                        <div>
+                            <AmplifySignOut />
+                        </div>
                     </Toolbar>
                 </AppBar>
             </div>
@@ -240,5 +276,4 @@ function App() {
         </div>
     )
 }
-
 export default withAuthenticator(App);
