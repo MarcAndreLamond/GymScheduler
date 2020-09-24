@@ -1,0 +1,20 @@
+{
+  "dev": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-gymscheduler-dev-143125-authRole",
+      "UnauthRoleArn": "arn:aws:iam::418813690925:role/amplify-gymscheduler-dev-143125-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::418813690925:role/amplify-gymscheduler-dev-143125-authRole",
+      "Region": "us-east-1",
+      "DeploymentBucketName": "amplify-gymscheduler-dev-143125-deployment",
+      "UnauthRoleName": "amplify-gymscheduler-dev-143125-unauthRole",
+      "StackName": "amplify-gymscheduler-dev-143125",
+      "StackId": "arn:aws:cloudformation:us-east-1:418813690925:stack/amplify-gymscheduler-dev-143125/28be3370-fe94-11ea-bad2-12b57bb5da09",
+      "AmplifyAppId": "d14j9fy4cgbrti"
+    },
+    "categories": {
+      "auth": {
+        "gymscheduler7eeea8d7": {}
+      }
+    }
+  }
+}

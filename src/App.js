@@ -17,6 +17,7 @@ import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
 import MenuIcon from '@material-ui/icons/Menu';
 import TextField from '@material-ui/core/TextField';
+import { withAuthenticator, AmplifySignOut } from '@aws-amplify/ui-react'
 
 const localizer = momentLocalizer(moment);
 
@@ -24,24 +25,24 @@ const titleText = "Disponibilité";
 
 const useStylesBar = makeStyles((theme) => ({
     root: {
-      flexGrow: 1,
+        flexGrow: 1,
     },
     menuButton: {
-      marginRight: theme.spacing(2),
+        marginRight: theme.spacing(2),
     },
     title: {
-      flexGrow: 1,
+        flexGrow: 1,
     },
-  }));
-  
+}));
 
-  const useStylesButton = makeStyles((theme) => ({
+
+const useStylesButton = makeStyles((theme) => ({
     root: {
-      '& > *': {
-        margin: theme.spacing(3),
-      },
+        '& > *': {
+            margin: theme.spacing(3),
+        },
     },
-  }));
+}));
 
 function rand() {
     return Math.round(Math.random() * 20) - 10;
@@ -69,7 +70,7 @@ const useStyles = makeStyles((theme) => ({
     },
 }));
 
-export default function App() {
+function App() {
     const [myEventsList, setEventList] = useState([{
         start: moment().toDate(),
         end: moment()
@@ -185,8 +186,8 @@ export default function App() {
                 </form>
             </div>
             <div className={classesButton.root}>
-            <Button marginTop={10} variant="contained" color="primary" onClick={removeDispo}>
-                Add reservation
+                <Button marginTop={10} variant="contained" color="primary" onClick={removeDispo}>
+                    Add reservation
             </Button>
             </div>
         </div>
@@ -197,7 +198,7 @@ export default function App() {
     return (
         <div>
             <div className={classesBar.root}>
-                <AppBar   position="static">
+                <AppBar position="static">
                     <Toolbar>
                         <IconButton edge="start" className={classesBar.menuButton} color="inherit" aria-label="menu">
                             <MenuIcon />
@@ -205,7 +206,9 @@ export default function App() {
                         <Typography variant="h6" className={classesBar.title}>
                             Gym Test
                     </Typography>
-                        <Button color="inherit">Login</Button>
+                    <div>
+                        <AmplifySignOut />
+                    </div>
                     </Toolbar>
                 </AppBar>
             </div>
@@ -237,3 +240,5 @@ export default function App() {
         </div>
     )
 }
+
+export default withAuthenticator(App);

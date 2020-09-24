@@ -1,0 +1,10 @@
+{
+  "auth": {
+    "gymscheduler7eeea8d7": {
+      "service": "Cognito",
+      "providerPlugin": "awscloudformation",
+      "dependsOn": [],
+      "customAuth": false
+    }
+  }
+}
