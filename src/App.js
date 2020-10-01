@@ -23,9 +23,6 @@ import { withAuthenticator, AmplifySignOut } from '@aws-amplify/ui-react'
 import { createSchedule as createScheduleMutation, deleteSchedule as deleteScheduleMutaion } from './graphql/mutations';
 
 const localizer = momentLocalizer(moment);
-
-const titleText = "Disponibilité";
-
 const useStylesBar = makeStyles((theme) => ({
     root: {
         flexGrow: 1,
@@ -83,6 +80,7 @@ function App() {
     const [titreSchedule, setitreSchedule] = React.useState(null);
     const [modalStyle] = React.useState(getModalStyle);
     const [openModalReservation, setOpenModalReservation] = React.useState(false);
+    const [SelectId, setSelectId] = React.useState(null);
 
     useEffect(() => {
         fetchSchedule();
@@ -99,9 +97,10 @@ function App() {
         const s = moment(item.start).format("YYYY-MM-DDThh:mm:ss");
         const e = moment(item.end).format("YYYY-MM-DDThh:mm:ss");
         var data = {
-            start : moment(s).toDate(),
-            end :   moment(e).toDate(),
-            title : item.title,
+            id: item.id,
+            start: moment(s).toDate(),
+            end: moment(e).toDate(),
+            title: item.title,
         };
         return data;
     };
@@ -121,30 +120,28 @@ function App() {
     const handleOpen = ({ start, end }) => {
         start = moment(start).format("YYYY-MM-DDThh:mm:ss");
         end = moment(end).format("YYYY-MM-DDThh:mm:ss");
+        setitreSchedule(null);
         setStartDate(start);
         setEndDate(end);
         setOpenModal(true);
     };
     const handleClose = () => {
         setOpenModal(false);
+        setOpenModalReservation(false);
     };
 
     const handleOpenReservation = ({ start, end }) => {
         setStartDate(start);
         setEndDate(end);
+        const newSchedule = myEventsList.find(ele => ele.start === start);
+        setitreSchedule(newSchedule.title);
+        setSelectId(newSchedule.id);
+        setOpenModal(true);
         setOpenModalReservation(true);
     };
-    const handleCloseReservation = () => {
-        setOpenModalReservation(false);
-    };
-
-    const removeDispo = () => {
-        const list = myEventsList.filter(time => time.start !== startDate && time.end !== endDate);
-        setEventList(list);
-        handleCloseReservation();
-    }
 
     const AddEvent = () => {
+        if (!titreSchedule) return;
         const start = moment(startDate).toDate();
         const end = moment(endDate).toDate();
         const title = titreSchedule;
@@ -157,77 +154,116 @@ function App() {
                 }
             }
         });
-        setEventList([
-            ...myEventsList,
-            {
-                start,
-                end,
-                title,
-            },
-        ],
-        );
+        fetchSchedule();
+        handleClose();
+    }
+    async function ModifyEvent() {
+        if (!titreSchedule) return;
+        const newSchedule = myEventsList.filter(ele => ele.id !== SelectId);
+        await API.graphql({ query: deleteScheduleMutaion, variables: { input: { id: SelectId } } });
+        const start = moment(startDate).toDate();
+        const end = moment(endDate).toDate();
+        const title = titreSchedule;
+        await API.graphql({
+            query: createScheduleMutation, variables: {
+                input: {
+                    start,
+                    end,
+                    title,
+                }
+            }
+        });
+        fetchSchedule();
         handleClose();
     }
 
+    const RemoveEvent = () => {
+        const newSchedule = myEventsList.filter(ele => ele.id !== SelectId);
+        setEventList(newSchedule);
+        API.graphql({ query: deleteScheduleMutaion, variables: { input: { id: SelectId } } });
+        handleClose();
+    }
+
+    const formBody = (
+        <MuiPickersUtilsProvider utils={DateFnsUtils}>
+            <Grid container justify="space-around">
+                <form Validate autoComplete="off">
+                    <TextField id="titre" label="Titre" value={titreSchedule} onChange={handleTitreChange} required />
+                </form>
+                <KeyboardTimePicker
+                    margin="normal"
+                    id="time-picker"
+                    label="Time picker"
+                    value={startDate}
+                    onChange={handleDateStartChange}
+                    KeyboardButtonProps={{
+                        'aria-label': 'change start time',
+                    }}
+                />
+
+                <KeyboardTimePicker
+                    margin="normal"
+                    id="time-picker"
+                    label="Time picker"
+                    value={endDate}
+                    onChange={handleEndDateChange}
+                    KeyboardButtonProps={{
+                        'aria-label': 'change End time',
+                    }}
+                />
+            </Grid>
+        </MuiPickersUtilsProvider>
+    );
+
     const body = (
         <div style={modalStyle} className={classes.paper} >
-            <h2 id="simple-modal-title">Create event </h2>
-           
-            <MuiPickersUtilsProvider utils={DateFnsUtils}>
-                <Grid container justify="space-around">
-                <form  Validate autoComplete="off">
-                    <TextField id="titre" label="Titre" onChange={handleTitreChange} required />
-                </form>
-                    <KeyboardTimePicker
-                        margin="normal"
-                        id="time-picker"
-                        label="Time picker"
-                        value={startDate}
-                        onChange={handleDateStartChange}
-                        KeyboardButtonProps={{
-                            'aria-label': 'change start time',
-                        }}
-                    />
 
-                    <KeyboardTimePicker
-                        margin="normal"
-                        id="time-picker"
-                        label="Time picker"
-                        value={endDate}
-                        onChange={handleEndDateChange}
-                        KeyboardButtonProps={{
-                            'aria-label': 'change End time',
-                        }}
-                    />
-                </Grid>
-            </MuiPickersUtilsProvider>
+            <h2 id="simple-modal-title">Create event </h2>
+            {formBody}
 
             <Grid paddingTop={2} container justify="space-around">
                 <Button variant="contained" color="primary" onClick={AddEvent}>
                     Add event
             </Button>
-            </Grid>
 
+            </Grid>
+        </div>
+    );
+
+    const bodyReservation = (
+
+        <div style={modalStyle} className={classes.paper} >
+ <Grid paddingTop={2} container justify="space-around">
+            <h2 id="simple-modal-title">Modify event </h2>
+            {formBody}
+           
+                <Button variant="contained" color="primary" onClick={RemoveEvent}>
+                    Delete
+            </Button>
+                <Button variant="contained" color="primary" onClick={ModifyEvent}>
+                    Modify
+            </Button>
+            </Grid>
         </div>
     );
     const classesButton = useStylesButton();
 
-    const bodyReservation = (
-        <div style={modalStyle} className={classes.paper} >
-            <h2 id="simple-modal-title">Reserve a date </h2>
-            <div>
-                <form Validate autoComplete="off">
-                    <TextField id="Name" label="Name" required />
-                    <TextField id="Email" label="Email" required />
-                </form>
-            </div>
-            <div className={classesButton.root}>
-                <Button marginTop={10} variant="contained" color="primary" onClick={removeDispo}>
-                    Add reservation
-            </Button>
-            </div>
-        </div>
-    )
+    // const bodyReservation = (
+    //     <div style={modalStyle} className={classes.paper} >
+    //         <h2 id="simple-modal-title">Reserve a date </h2>
+    //         <div>
+    //             <form Validate autoComplete="off">
+    //                 <TextField id="Name" label="Name" required />
+    //                 <TextField id="Email" label="Email" required />
+    //             </form>
+    //         </div>
+    //         <div className={classesButton.root}>
+    //             <Button marginTop={10} variant="contained" color="primary" onClick={removeDispo}>
+    //                 Add reservation
+    //         </Button>
+    //         </div>
+    //     </div>
+    // )
 
     const classesBar = useStylesBar();
 
@@ -262,18 +298,23 @@ function App() {
                     onClose={handleClose}
                     aria-describedby="simple-modal-description"
                 >
-                    {body}
+                    {openModalReservation ? bodyReservation : body}
                 </Modal>
-
+                {/* 
                 <Modal
                     open={openModalReservation}
                     onClose={handleCloseReservation}
                     aria-describedby="simple-modal-description"
                 >
                     {bodyReservation}
-                </Modal>
+                </Modal> */}
             </div>
         </div>
     )
 }
-export default withAuthenticator(App);
+
+export default App;
+
+
+
+// export default withAuthenticator(App);
