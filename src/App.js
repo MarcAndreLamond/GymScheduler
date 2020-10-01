@@ -21,6 +21,8 @@ import { API } from 'aws-amplify';
 import { listSchedules } from './graphql/queries';
 import { createSchedule as createScheduleMutation, deleteSchedule as deleteScheduleMutaion } from './graphql/mutations';
 import Box from '@material-ui/core/Box';
+var AWS = require('aws-sdk');
+AWS.config.update({ region: 'REGION' });
 
 const localizer = momentLocalizer(moment);
 
@@ -109,8 +111,8 @@ function App() {
     const [startDate, setStartDate] = React.useState(new Date('2014-08-18T21:11:54'));
     const [endDate, setEndDate] = React.useState(new Date('2014-08-18T21:11:54'));
     const [modalStyle] = React.useState(getModalStyle);
-    const [name, setname] = React.useState(null); 
-    const [email, setEmail] = React.useState(null); 
+    const [name, setname] = React.useState(null);
+    const [email, setEmail] = React.useState(null);
     const [SelectId, setSelectId] = React.useState(null);
     const [tab, setTabvalue] = React.useState(0);
 
@@ -147,11 +149,13 @@ function App() {
 
     const handleClose = () => {
         setOpenModal(false);
+        setEmail(null);
+        setname(null);
     };
 
     const handleOpenReservation = ({ start, end }) => {
         const element = myEventsList.find(ele => ele.start === start);
-        if(element.title !== "Not Available") {
+        if (element.title !== "Not Available") {
             setStartDate(start);
             setEndDate(end);
             setSelectId(element.id);
@@ -159,7 +163,7 @@ function App() {
         }
     };
 
-    async function AddReservation(start,end,title) {
+    async function AddReservation(start, end, title) {
         await API.graphql({
             query: createScheduleMutation, variables: {
                 input: {
@@ -172,41 +176,88 @@ function App() {
     }
 
     async function removeDispo() {
-        
-        if (!name && !email) return; 
+
+        if (!name && !email) return;
         const element = myEventsList.find(ele => ele.id === SelectId);
-        if(startDate < element.start && endDate > element.end) return;
-
+        if (startDate < element.start && endDate > element.end) return;
+        await senEmail(email,name);
         await API.graphql({ query: deleteScheduleMutaion, variables: { input: { id: SelectId } } });
-        if(startDate === element.start && endDate ===element.end ) {
-            await AddReservation(startDate,endDate,"Not Available");
-        } else if(startDate === element.start) {
-            await AddReservation(startDate,endDate,"Not Available");
-            await AddReservation(endDate,element.end,element.title);
-        } else if (endDate === element.end )
-        {
-            await AddReservation(element.start,startDate,element.title);
-            await AddReservation(startDate,endDate,"Not Available");
+        if (startDate === element.start && endDate === element.end) {
+            await AddReservation(startDate, endDate, "Not Available");
+        } else if (startDate === element.start) {
+            await AddReservation(startDate, endDate, "Not Available");
+            await AddReservation(endDate, element.end, element.title);
+        } else if (endDate === element.end) {
+            await AddReservation(element.start, startDate, element.title);
+            await AddReservation(startDate, endDate, "Not Available");
         } else {
-            await AddReservation(element.start,startDate,element.title);
-            await AddReservation(startDate,endDate,"Not Available");
-            await AddReservation(endDate,element.end,element.title);
+            await AddReservation(element.start, startDate, element.title);
+            await AddReservation(startDate, endDate, "Not Available");
+            await AddReservation(endDate, element.end, element.title);
         }
-
+        await senEmail(email,name);
         fetchSchedule();
         handleClose();
     }
 
 
+    async function senEmail() {
+        var params = {
+            Destination: { /* required */
+                ToAddresses: [
+                    email,
+                    /* more items */
+                ]
+            },
+            Message: { /* required */
+                Body: { /* required */
+                    Html: {
+                        Charset: "UTF-8",
+                        Data: "HTML_FORMAT_BODY"
+                    },
+                    Text: {
+                        Charset: "UTF-8",
+                        Data: "TEXT_FORMAT_BODY"
+                    }
+                },
+                Subject: {
+                    Charset: 'UTF-8',
+                    Data: 'gym reservation of ' + name
+                }
+            },
+            Source: 'marcovich_5@hotmail.com', /* required */
+            ReplyToAddresses: [
+                'marcovich_5@hotmail.com',
+                /* more items */
+            ],
+        };
+
+        // Create the promise and SES service object
+        var sendPromise = new AWS.SES({ apiVersion: '2010-12-01' }).sendEmail(params).promise();
+
+        // Handle promise's fulfilled/rejected states
+        sendPromise.then(
+            function (data) {
+                console.log(data.MessageId);
+            }).catch(
+                function (err) {
+                    console.error(err, err.stack);
+                });
+    }
+
+
     const classesButton = useStylesButton();
 
+
     const handleNameChange = (name) => {
-        setname(name);
+
+        setname(name.target.value);
     };
 
 
     const handleEmailChange = (email) => {
-        setEmail(email);
+
+        setEmail(email.target.value);
     };
 
     const bodyReservation = (
@@ -274,8 +325,8 @@ function App() {
             <TabPanel value={tab} index={1}>
                 <div>
 
-                <Typography variant="h1" component="h2" gutterBottom>
-                    Add reservation
+                    <Typography variant="h1" component="h2" gutterBottom>
+                        Add reservation
                 </Typography>
 
 
@@ -296,10 +347,10 @@ function App() {
                 </div>
             </TabPanel>
             <TabPanel value={tab} index={2}>
-            <Typography variant="h1" component="h2" gutterBottom>
+                <Typography variant="h1" component="h2" gutterBottom>
                     To be add
                 </Typography>
-        </TabPanel>
+            </TabPanel>
         </div>
     )
 }
