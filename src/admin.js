@@ -14,8 +14,6 @@ import {
 import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
-import IconButton from '@material-ui/core/IconButton';
-import MenuIcon from '@material-ui/icons/Menu';
 import TextField from '@material-ui/core/TextField';
 import { API } from 'aws-amplify';
 import { listSchedules } from './graphql/queries';
@@ -232,10 +230,10 @@ function AdminApp() {
     const bodyReservation = (
 
         <div style={modalStyle} className={classes.paper} >
- <Grid paddingTop={2} container justify="space-around">
-            <h2 id="simple-modal-title">Modify event </h2>
-            {formBody}
-           
+            <Grid paddingTop={2} container justify="space-around">
+                <h2 id="simple-modal-title">Modify event </h2>
+                {formBody}
+
                 <Button variant="contained" color="primary" onClick={RemoveEvent}>
                     Delete
             </Button>
@@ -245,7 +243,7 @@ function AdminApp() {
             </Grid>
         </div>
     );
-    
+
     const classesButton = useStylesButton();
     const classesBar = useStylesBar();
 
@@ -254,12 +252,9 @@ function AdminApp() {
             <div className={classesBar.root}>
                 <AppBar position="static">
                     <Toolbar>
-                        <IconButton edge="start" className={classesBar.menuButton} color="inherit" aria-label="menu">
-                            <MenuIcon />
-                        </IconButton>
                         <Typography variant="h6" className={classesBar.title}>
                             Admin Gym Test
-                    </Typography>
+                        </Typography>
                         <div>
                             <AmplifySignOut />
                         </div>
@@ -282,7 +277,7 @@ function AdminApp() {
                 >
                     {openModalReservation ? bodyReservation : body}
                 </Modal>
-              
+
             </div>
         </div>
     )

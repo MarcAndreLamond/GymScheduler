@@ -113,6 +113,7 @@ function App() {
     const [modalStyle] = React.useState(getModalStyle);
     const [name, setname] = React.useState(null);
     const [email, setEmail] = React.useState(null);
+    const [phone, setPhone] = React.useState(null);
     const [SelectId, setSelectId] = React.useState(null);
     const [tab, setTabvalue] = React.useState(0);
 
@@ -177,10 +178,15 @@ function App() {
 
     async function removeDispo() {
 
-        if (!name && !email) return;
+        if (!name && (!email || !phone)) return;
         const element = myEventsList.find(ele => ele.id === SelectId);
         if (startDate < element.start && endDate > element.end) return;
-        await senEmail(email,name);
+        if (email) {
+            await senEmail(email, name);
+        }
+        if (phone) {
+            await sendSNS();
+        }
         await API.graphql({ query: deleteScheduleMutaion, variables: { input: { id: SelectId } } });
         if (startDate === element.start && endDate === element.end) {
             await AddReservation(startDate, endDate, "Not Available");
@@ -195,11 +201,29 @@ function App() {
             await AddReservation(startDate, endDate, "Not Available");
             await AddReservation(endDate, element.end, element.title);
         }
-        await senEmail(email,name);
         fetchSchedule();
         handleClose();
     }
 
+    async function sendSNS() {
+        // Create publish parameters
+        var params = {
+            Message: 'rendez-vous le ...', /* required */
+            PhoneNumber: '+1'+phone,
+        };
+
+        // Create promise and SNS service object
+        var publishTextPromise = new AWS.SNS({ apiVersion: '2010-03-31' }).publish(params).promise();
+
+        // Handle promise's fulfilled/rejected states
+        publishTextPromise.then(
+            function (data) {
+                console.log("MessageID is " + data.MessageId);
+            }).catch(
+                function (err) {
+                    console.error(err, err.stack);
+                });
+    }
 
     async function senEmail() {
         var params = {
@@ -249,15 +273,19 @@ function App() {
     const classesButton = useStylesButton();
 
 
-    const handleNameChange = (name) => {
-
-        setname(name.target.value);
+    const handleNameChange = (e) => {
+        setname(e.target.value);
     };
 
 
-    const handleEmailChange = (email) => {
+    const handleEmailChange = (e) => {
 
-        setEmail(email.target.value);
+        setEmail(e.target.value);
+    };
+
+
+    const handlePhoneChange = (e) => {
+        setPhone(e.target.value);
     };
 
     const bodyReservation = (
@@ -270,6 +298,9 @@ function App() {
                     </div>
                     <div>
                         <TextField id="Email" label="Email" onChange={handleEmailChange} required />
+                    </div>
+                    <div>
+                        <TextField id="phone" label="phone" onChange={handlePhoneChange} required />
                     </div>
                     <KeyboardTimePicker
                         margin="normal"
@@ -311,7 +342,7 @@ function App() {
     return (
         <div className={classesPanel.root}>
             <AppBar position="static">
-                <Tabs value={tab} onChange={handleChangeTab} >
+                <Tabs value={tab} onChange={handleChangeTab} justify="space-around">
                     <Tab label="Home" {...a11yProps(0)} />
                     <Tab label="Reservation" {...a11yProps(1)} />
                     <Tab label="Contact us" {...a11yProps(2)} />
