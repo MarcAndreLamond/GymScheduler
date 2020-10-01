@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { Calendar, momentLocalizer, Views } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
@@ -12,26 +13,56 @@ import {
     KeyboardTimePicker
 } from '@material-ui/pickers';
 import AppBar from '@material-ui/core/AppBar';
-import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
-import IconButton from '@material-ui/core/IconButton';
-import MenuIcon from '@material-ui/icons/Menu';
+import Tabs from '@material-ui/core/Tabs';
+import Tab from '@material-ui/core/Tab';
 import TextField from '@material-ui/core/TextField';
 import { API } from 'aws-amplify';
 import { listSchedules } from './graphql/queries';
-import { withAuthenticator, AmplifySignOut } from '@aws-amplify/ui-react'
 import { createSchedule as createScheduleMutation, deleteSchedule as deleteScheduleMutaion } from './graphql/mutations';
+import Box from '@material-ui/core/Box';
 
 const localizer = momentLocalizer(moment);
-const useStylesBar = makeStyles((theme) => ({
+
+
+function TabPanel(props) {
+    const { children, value, index, ...other } = props;
+
+    return (
+        <div
+            role="tabpanel"
+            hidden={value !== index}
+            id={`simple-tabpanel-${index}`}
+            aria-labelledby={`simple-tab-${index}`}
+            {...other}
+        >
+            {value === index && (
+                <Box p={3}>
+                    <Typography>{children}</Typography>
+                </Box>
+            )}
+        </div>
+    );
+}
+
+
+TabPanel.propTypes = {
+    children: PropTypes.node,
+    index: PropTypes.any.isRequired,
+    value: PropTypes.any.isRequired,
+};
+
+function a11yProps(index) {
+    return {
+        id: `simple-tab-${index}`,
+        'aria-controls': `simple-tabpanel-${index}`,
+    };
+}
+
+const useStylesPanel = makeStyles((theme) => ({
     root: {
         flexGrow: 1,
-    },
-    menuButton: {
-        marginRight: theme.spacing(2),
-    },
-    title: {
-        flexGrow: 1,
+        backgroundColor: theme.palette.background.paper,
     },
 }));
 
@@ -77,10 +108,11 @@ function App() {
     const [openModal, setOpenModal] = React.useState(false);
     const [startDate, setStartDate] = React.useState(new Date('2014-08-18T21:11:54'));
     const [endDate, setEndDate] = React.useState(new Date('2014-08-18T21:11:54'));
-    const [titreSchedule, setitreSchedule] = React.useState(null);
     const [modalStyle] = React.useState(getModalStyle);
-    const [openModalReservation, setOpenModalReservation] = React.useState(false);
+    const [name, setname] = React.useState(null); 
+    const [email, setEmail] = React.useState(null); 
     const [SelectId, setSelectId] = React.useState(null);
+    const [tab, setTabvalue] = React.useState(0);
 
     useEffect(() => {
         fetchSchedule();
@@ -113,57 +145,21 @@ function App() {
         setEndDate(date);
     };
 
-    const handleTitreChange = (titre) => {
-        setitreSchedule(titre.target.value);
-    };
-
-    const handleOpen = ({ start, end }) => {
-        start = moment(start).format("YYYY-MM-DDThh:mm:ss");
-        end = moment(end).format("YYYY-MM-DDThh:mm:ss");
-        setitreSchedule(null);
-        setStartDate(start);
-        setEndDate(end);
-        setOpenModal(true);
-    };
     const handleClose = () => {
         setOpenModal(false);
-        setOpenModalReservation(false);
     };
 
     const handleOpenReservation = ({ start, end }) => {
-        setStartDate(start);
-        setEndDate(end);
-        const newSchedule = myEventsList.find(ele => ele.start === start);
-        setitreSchedule(newSchedule.title);
-        setSelectId(newSchedule.id);
-        setOpenModal(true);
-        setOpenModalReservation(true);
+        const element = myEventsList.find(ele => ele.start === start);
+        if(element.title !== "Not Available") {
+            setStartDate(start);
+            setEndDate(end);
+            setSelectId(element.id);
+            setOpenModal(true);
+        }
     };
 
-    const AddEvent = () => {
-        if (!titreSchedule) return;
-        const start = moment(startDate).toDate();
-        const end = moment(endDate).toDate();
-        const title = titreSchedule;
-        API.graphql({
-            query: createScheduleMutation, variables: {
-                input: {
-                    start,
-                    end,
-                    title,
-                }
-            }
-        });
-        fetchSchedule();
-        handleClose();
-    }
-    async function ModifyEvent() {
-        if (!titreSchedule) return;
-        const newSchedule = myEventsList.filter(ele => ele.id !== SelectId);
-        await API.graphql({ query: deleteScheduleMutaion, variables: { input: { id: SelectId } } });
-        const start = moment(startDate).toDate();
-        const end = moment(endDate).toDate();
-        const title = titreSchedule;
+    async function AddReservation(start,end,title) {
         await API.graphql({
             query: createScheduleMutation, variables: {
                 input: {
@@ -173,148 +169,140 @@ function App() {
                 }
             }
         });
+    }
+
+    async function removeDispo() {
+        
+        if (!name && !email) return; 
+        const element = myEventsList.find(ele => ele.id === SelectId);
+        if(startDate < element.start && endDate > element.end) return;
+
+        await API.graphql({ query: deleteScheduleMutaion, variables: { input: { id: SelectId } } });
+        if(startDate === element.start && endDate ===element.end ) {
+            await AddReservation(startDate,endDate,"Not Available");
+        } else if(startDate === element.start) {
+            await AddReservation(startDate,endDate,"Not Available");
+            await AddReservation(endDate,element.end,element.title);
+        } else if (endDate === element.end )
+        {
+            await AddReservation(element.start,startDate,element.title);
+            await AddReservation(startDate,endDate,"Not Available");
+        } else {
+            await AddReservation(element.start,startDate,element.title);
+            await AddReservation(startDate,endDate,"Not Available");
+            await AddReservation(endDate,element.end,element.title);
+        }
+
         fetchSchedule();
         handleClose();
     }
 
-    const RemoveEvent = () => {
-        const newSchedule = myEventsList.filter(ele => ele.id !== SelectId);
-        setEventList(newSchedule);
-        API.graphql({ query: deleteScheduleMutaion, variables: { input: { id: SelectId } } });
-        handleClose();
-    }
 
-    const formBody = (
-        <MuiPickersUtilsProvider utils={DateFnsUtils}>
-            <Grid container justify="space-around">
-                <form Validate autoComplete="off">
-                    <TextField id="titre" label="Titre" value={titreSchedule} onChange={handleTitreChange} required />
-                </form>
-                <KeyboardTimePicker
-                    margin="normal"
-                    id="time-picker"
-                    label="Time picker"
-                    value={startDate}
-                    onChange={handleDateStartChange}
-                    KeyboardButtonProps={{
-                        'aria-label': 'change start time',
-                    }}
-                />
-
-                <KeyboardTimePicker
-                    margin="normal"
-                    id="time-picker"
-                    label="Time picker"
-                    value={endDate}
-                    onChange={handleEndDateChange}
-                    KeyboardButtonProps={{
-                        'aria-label': 'change End time',
-                    }}
-                />
-            </Grid>
-        </MuiPickersUtilsProvider>
-    );
-
-    const body = (
-        <div style={modalStyle} className={classes.paper} >
-
-            <h2 id="simple-modal-title">Create event </h2>
-            {formBody}
-
-            <Grid paddingTop={2} container justify="space-around">
-                <Button variant="contained" color="primary" onClick={AddEvent}>
-                    Add event
-            </Button>
-
-            </Grid>
-        </div>
-    );
-
-    const bodyReservation = (
-
-        <div style={modalStyle} className={classes.paper} >
- <Grid paddingTop={2} container justify="space-around">
-            <h2 id="simple-modal-title">Modify event </h2>
-            {formBody}
-           
-                <Button variant="contained" color="primary" onClick={RemoveEvent}>
-                    Delete
-            </Button>
-                <Button variant="contained" color="primary" onClick={ModifyEvent}>
-                    Modify
-            </Button>
-            </Grid>
-        </div>
-    );
     const classesButton = useStylesButton();
 
-    // const bodyReservation = (
-    //     <div style={modalStyle} className={classes.paper} >
-    //         <h2 id="simple-modal-title">Reserve a date </h2>
-    //         <div>
-    //             <form Validate autoComplete="off">
-    //                 <TextField id="Name" label="Name" required />
-    //                 <TextField id="Email" label="Email" required />
-    //             </form>
-    //         </div>
-    //         <div className={classesButton.root}>
-    //             <Button marginTop={10} variant="contained" color="primary" onClick={removeDispo}>
-    //                 Add reservation
-    //         </Button>
-    //         </div>
-    //     </div>
-    // )
+    const handleNameChange = (name) => {
+        setname(name);
+    };
 
-    const classesBar = useStylesBar();
+
+    const handleEmailChange = (email) => {
+        setEmail(email);
+    };
+
+    const bodyReservation = (
+        <div style={modalStyle} className={classes.paper} >
+            <h2 id="simple-modal-title">Reserve a date </h2>
+            <MuiPickersUtilsProvider utils={DateFnsUtils}>
+                <Grid container justify="space-around">
+                    <div>
+                        <TextField id="Name" label="Name" onChange={handleNameChange} required />
+                    </div>
+                    <div>
+                        <TextField id="Email" label="Email" onChange={handleEmailChange} required />
+                    </div>
+                    <KeyboardTimePicker
+                        margin="normal"
+                        id="time-picker"
+                        label="Time picker"
+                        value={startDate}
+                        onChange={handleDateStartChange}
+                        KeyboardButtonProps={{
+                            'aria-label': 'change start time',
+                        }}
+                    />
+
+                    <KeyboardTimePicker
+                        margin="normal"
+                        id="time-picker"
+                        label="Time picker"
+                        value={endDate}
+                        onChange={handleEndDateChange}
+                        KeyboardButtonProps={{
+                            'aria-label': 'change End time',
+                        }}
+                    />
+                </Grid>
+            </MuiPickersUtilsProvider>
+            <div className={classesButton.root}>
+                <Button marginTop={10} variant="contained" color="primary" onClick={removeDispo}>
+                    Add reservation
+            </Button>
+            </div>
+        </div>
+    );
+    const classesPanel = useStylesPanel();
+
+    const handleChangeTab = (event, newValue) => {
+        setTabvalue(newValue);
+    };
+
 
     return (
-        <div>
-            <div className={classesBar.root}>
-                <AppBar position="static">
-                    <Toolbar>
-                        <IconButton edge="start" className={classesBar.menuButton} color="inherit" aria-label="menu">
-                            <MenuIcon />
-                        </IconButton>
-                        <Typography variant="h6" className={classesBar.title}>
-                            Gym Test
-                    </Typography>
-                        <div>
-                            <AmplifySignOut />
-                        </div>
-                    </Toolbar>
-                </AppBar>
-            </div>
-            <div>
-                <Calendar
-                    selectable
-                    localizer={localizer}
-                    events={myEventsList}
-                    defaultView={Views.WEEK}
-                    onSelectEvent={handleOpenReservation}
-                    onSelectSlot={handleOpen}
-                />
-                <Modal
-                    open={openModal}
-                    onClose={handleClose}
-                    aria-describedby="simple-modal-description"
-                >
-                    {openModalReservation ? bodyReservation : body}
-                </Modal>
-                {/* 
-                <Modal
-                    open={openModalReservation}
-                    onClose={handleCloseReservation}
-                    aria-describedby="simple-modal-description"
-                >
-                    {bodyReservation}
-                </Modal> */}
-            </div>
+        <div className={classesPanel.root}>
+            <AppBar position="static">
+                <Tabs value={tab} onChange={handleChangeTab} >
+                    <Tab label="Home" {...a11yProps(0)} />
+                    <Tab label="Reservation" {...a11yProps(1)} />
+                    <Tab label="Contact us" {...a11yProps(2)} />
+                </Tabs>
+            </AppBar>
+            <TabPanel value={tab} index={0}>
+                <Typography variant="h1" component="h2" gutterBottom>
+                    Hello
+                </Typography>
+            </TabPanel>
+            <TabPanel value={tab} index={1}>
+                <div>
+
+                <Typography variant="h1" component="h2" gutterBottom>
+                    Add reservation
+                </Typography>
+
+
+                    <Calendar
+                        selectable
+                        localizer={localizer}
+                        events={myEventsList}
+                        defaultView={Views.WEEK}
+                        onSelectEvent={handleOpenReservation}
+                    />
+                    <Modal
+                        open={openModal}
+                        onClose={handleClose}
+                        aria-describedby="simple-modal-description"
+                    >
+                        {bodyReservation}
+                    </Modal>
+                </div>
+            </TabPanel>
+            <TabPanel value={tab} index={2}>
+            <Typography variant="h1" component="h2" gutterBottom>
+                    To be add
+                </Typography>
+        </TabPanel>
         </div>
     )
 }
 
 export default App;
 
-
-
-// export default withAuthenticator(App);
