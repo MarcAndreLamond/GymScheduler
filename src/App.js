@@ -21,8 +21,15 @@ import { API } from 'aws-amplify';
 import { listSchedules } from './graphql/queries';
 import { createSchedule as createScheduleMutation, deleteSchedule as deleteScheduleMutaion } from './graphql/mutations';
 import Box from '@material-ui/core/Box';
+import Select from '@material-ui/core/Select';
+import MenuItem from '@material-ui/core/MenuItem';
+import FormControl from '@material-ui/core/FormControl';
+import InputLabel from '@material-ui/core/InputLabel';
+
 var AWS = require('aws-sdk');
 AWS.config.update({ region: 'REGION' });
+
+
 
 const localizer = momentLocalizer(moment);
 
@@ -103,9 +110,26 @@ const useStyles = makeStyles((theme) => ({
     },
 }));
 
+const initialMenuItemPricingState = { nbClient: 0, price: 0.0 }
+
+const PriceItems = [
+    {
+        nbClient: 1,
+        price: 25.0,
+      },
+      {
+        nbClient: 2,
+        price: 40.0,
+      },
+      {
+        nbClient: 3,
+        price: 50.0,
+      },
+      
+    ];
 function App() {
 
-    const [myEventsList, setEventList] = React.useState([]);
+    const [myEventsList, setEventList] = React.useState();
     const classes = useStyles();
     const [openModal, setOpenModal] = React.useState(false);
     const [startDate, setStartDate] = React.useState(new Date('2014-08-18T21:11:54'));
@@ -116,6 +140,7 @@ function App() {
     const [phone, setPhone] = React.useState(null);
     const [SelectId, setSelectId] = React.useState(null);
     const [tab, setTabvalue] = React.useState(0);
+    const [MenuItemPricing, setMenuItemPricing] = React.useState(initialMenuItemPricingState);
 
     useEffect(() => {
         fetchSchedule();
@@ -171,6 +196,11 @@ function App() {
                     start,
                     end,
                     title,
+                    mail:email,
+                    client: name,
+                    phone: phone,
+                    nbClient: MenuItemPricing.nbClient,
+                    price: MenuItemPricing.price,
                 }
             }
         });
@@ -288,6 +318,30 @@ function App() {
         setPhone(e.target.value);
     };
 
+    const handleChangePrice = (e, newValue) => {
+        setMenuItemPricing(e.target.value);
+    };
+
+    const NumberList = (
+        <FormControl  margin="normal">
+        <InputLabel >
+          Number of people
+        </InputLabel>
+        <Select
+          value={MenuItemPricing}
+          onChange={handleChangePrice}
+          displayEmpty
+        >
+
+        {   
+          PriceItems.map(p => (
+          <MenuItem value={p}>{p.nbClient} client - {p.price} $</MenuItem>
+          ))
+        }
+        </Select>
+      </FormControl>
+    )
+
     const bodyReservation = (
         <div style={modalStyle} className={classes.paper} >
             <h2 id="simple-modal-title">Reserve a date </h2>
@@ -302,6 +356,8 @@ function App() {
                     <div>
                         <TextField id="phone" label="phone" onChange={handlePhoneChange} required />
                     </div>
+
+                    {NumberList}
                     <KeyboardTimePicker
                         margin="normal"
                         id="time-picker"
@@ -337,6 +393,10 @@ function App() {
     const handleChangeTab = (event, newValue) => {
         setTabvalue(newValue);
     };
+
+
+
+
 
 
     return (

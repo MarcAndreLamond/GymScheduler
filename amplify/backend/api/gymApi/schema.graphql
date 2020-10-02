@@ -3,4 +3,9 @@ type schedule @model {
   start:  AWSDateTime!
   end:  AWSDateTime!
   title: String!
+  client: String
+  mail: AWSEmail
+  phone: AWSPhone
+  nbClient: Int
+  price: Float
 }

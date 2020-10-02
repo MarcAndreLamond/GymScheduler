@@ -8,6 +8,11 @@ export const onCreateSchedule = /* GraphQL */ `
       start
       end
       title
+      client
+      mail
+      phone
+      nbClient
+      price
       createdAt
       updatedAt
     }
@@ -20,6 +25,11 @@ export const onUpdateSchedule = /* GraphQL */ `
       start
       end
       title
+      client
+      mail
+      phone
+      nbClient
+      price
       createdAt
       updatedAt
     }
@@ -32,6 +42,11 @@ export const onDeleteSchedule = /* GraphQL */ `
       start
       end
       title
+      client
+      mail
+      phone
+      nbClient
+      price
       createdAt
       updatedAt
     }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, momentLocalizer, Views } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
+import InputLabel from '@material-ui/core/InputLabel';
 import Modal from '@material-ui/core/Modal';
 import { makeStyles } from '@material-ui/core/styles';
 import Grid from '@material-ui/core/Grid';
@@ -78,7 +79,7 @@ function AdminApp() {
     const [titreSchedule, setitreSchedule] = React.useState(null);
     const [modalStyle] = React.useState(getModalStyle);
     const [openModalReservation, setOpenModalReservation] = React.useState(false);
-    const [SelectId, setSelectId] = React.useState(null);
+    const [Select, setSelect] = React.useState(null);
 
     useEffect(() => {
         fetchSchedule();
@@ -99,6 +100,11 @@ function AdminApp() {
             start: moment(s).toDate(),
             end: moment(e).toDate(),
             title: item.title,
+            client: item.client,
+            mail: item.mail,
+            phone: item.phone,
+            nbClient: item.nbClient,
+            price: item.price,
         };
         return data;
     };
@@ -133,7 +139,7 @@ function AdminApp() {
         setEndDate(end);
         const newSchedule = myEventsList.find(ele => ele.start === start);
         setitreSchedule(newSchedule.title);
-        setSelectId(newSchedule.id);
+        setSelect(newSchedule);
         setOpenModal(true);
         setOpenModalReservation(true);
     };
@@ -157,7 +163,7 @@ function AdminApp() {
     }
     async function ModifyEvent() {
         if (!titreSchedule) return;
-        await API.graphql({ query: deleteScheduleMutaion, variables: { input: { id: SelectId } } });
+        await API.graphql({ query: deleteScheduleMutaion, variables: { input: { id: Select.id } } });
         const start = moment(startDate).toDate();
         const end = moment(endDate).toDate();
         const title = titreSchedule;
@@ -167,6 +173,11 @@ function AdminApp() {
                     start,
                     end,
                     title,
+                    client: Select.client,
+                    mail: Select.mail,
+                    phone: Select.phone,
+                    nbClient: Select.nbClient,
+                    price: Select.price,
                 }
             }
         });
@@ -175,18 +186,34 @@ function AdminApp() {
     }
 
     const RemoveEvent = () => {
-        const newSchedule = myEventsList.filter(ele => ele.id !== SelectId);
+        const newSchedule = myEventsList.filter(ele => ele.id !== Select.id);
         setEventList(newSchedule);
-        API.graphql({ query: deleteScheduleMutaion, variables: { input: { id: SelectId } } });
+        API.graphql({ query: deleteScheduleMutaion, variables: { input: { id: Select.id } } });
         handleClose();
     }
+    const infoClient = (
+    Select !== null ? 
+        <div margin="normal" justify="space-around">
+            <InputLabel margin="normal" >Client - {Select.client} </InputLabel>
+            <InputLabel margin="normal" >Email - {Select.mail} </InputLabel> 
+            <InputLabel margin="normal">Phone - {Select.phone} </InputLabel>
+            <InputLabel  margin="normal">Number of client - {Select.nbClient} </InputLabel>
+            <InputLabel  margin="normal">Price - {Select.price} $</InputLabel> 
+         </div>
+    : null
+    );
 
     const formBody = (
         <MuiPickersUtilsProvider utils={DateFnsUtils}>
             <Grid container justify="space-around">
                 <form Validate autoComplete="off">
-                    <TextField id="titre" label="Titre" value={titreSchedule} onChange={handleTitreChange} required />
+                    <TextField margin="normal" id="titre" label="Titre" value={titreSchedule} onChange={handleTitreChange} required />
+                    {Select !== null ? 
+            (Select.client === null ? null : infoClient) : null }
+                
                 </form>
+        
+
                 <KeyboardTimePicker
                     margin="normal"
                     id="time-picker"

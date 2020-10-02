@@ -11,6 +11,11 @@ export const createSchedule = /* GraphQL */ `
       start
       end
       title
+      client
+      mail
+      phone
+      nbClient
+      price
       createdAt
       updatedAt
     }
@@ -26,6 +31,11 @@ export const updateSchedule = /* GraphQL */ `
       start
       end
       title
+      client
+      mail
+      phone
+      nbClient
+      price
       createdAt
       updatedAt
     }
@@ -41,6 +51,11 @@ export const deleteSchedule = /* GraphQL */ `
       start
       end
       title
+      client
+      mail
+      phone
+      nbClient
+      price
       createdAt
       updatedAt
     }

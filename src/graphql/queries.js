@@ -8,6 +8,11 @@ export const getSchedule = /* GraphQL */ `
       start
       end
       title
+      client
+      mail
+      phone
+      nbClient
+      price
       createdAt
       updatedAt
     }
@@ -25,6 +30,11 @@ export const listSchedules = /* GraphQL */ `
         start
         end
         title
+        client
+        mail
+        phone
+        nbClient
+        price
         createdAt
         updatedAt
       }
